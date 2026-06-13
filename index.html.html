@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#68c8ff">
+<title>Smart Tuition Timer</title>
+<style>
+  :root {
+    --sky-1: #dff6ff;
+    --sky-2: #f7fbff;
+    --surface: rgba(255,255,255,.92);
+    --surface-solid: #ffffff;
+    --surface-soft: #f7fbff;
+    --text: #17346b;
+    --muted: #6680a8;
+    --line: #cfe7f7;
+    --primary: #7055e8;
+    --primary-2: #9158ef;
+    --blue: #3a8df5;
+    --cyan: #2fb7de;
+    --green: #2cbf6d;
+    --yellow: #ffbf2f;
+    --orange: #ff944d;
+    --pink: #f25f87;
+    --red: #ec5670;
+    --shadow: 0 14px 34px rgba(70, 112, 162, .16);
+    --radius-xl: 28px;
+    --radius-lg: 22px;
+    --radius-md: 16px;
+  }
+
+  body.dark {
+    --sky-1: #142440;
+    --sky-2: #0d1729;
+    --surface: rgba(28, 43, 70, .94);
+    --surface-solid: #1b2c49;
+    --surface-soft: #223655;
+    --text: #f5f9ff;
+    --muted: #adc0dc;
+    --line: #38516f;
+    --shadow: 0 14px 34px rgba(0,0,0,.28);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Trebuchet MS", "Arial Rounded MT Bold", system-ui, sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(circle at 8% 3%, rgba(255,210,63,.42) 0 60px, transparent 62px),
+      radial-gradient(circle at 78% 7%, rgba(255,255,255,.72) 0 42px, transparent 44px),
+      linear-gradient(180deg, var(--sky-1), var(--sky-2));
+    transition: background .25s ease, color .25s ease;
+  }
+
+  button, input, select, textarea { font: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 4px solid rgba(58,141,245,.22);
+    outline-offset: 2px;
+  }
+
+  .app-shell {
+    width: min(1500px, 100%);
+    min-height: 100vh;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 245px 1fr;
+    gap: 18px;
+    padding: 16px;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 16px;
+    height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.75);
+    border-radius: 30px;
+    background: linear-gradient(180deg, rgba(255,255,255,.94), rgba(245,251,255,.88));
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px);
+  }
+  body.dark .sidebar { background: linear-gradient(180deg, rgba(28,43,70,.98), rgba(20,34,57,.96)); border-color: var(--line); }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 22px 18px 15px;
+  }
+  .brand-star {
+    width: 50px;
+    height: 50px;
+    display: grid;
+    place-items: center;
+    border-radius: 18px;
+    background: linear-gradient(145deg, #ffe66d, #ffb72f);
+    box-shadow: 0 8px 18px rgba(255,183,47,.35);
+    font-size: 29px;
+  }
+  .brand strong { display: block; font-size: 18px; line-height: 1.05; }
+  .brand small { color: var(--muted); font-weight: 700; }
+
+  .nav-list {
+    display: grid;
+    gap: 6px;
+    padding: 8px 12px 18px;
+    overflow-y: auto;
+  }
+  .nav-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 0;
+    border-radius: 15px;
+    padding: 12px 13px;
+    color: var(--text);
+    background: transparent;
+    font-weight: 900;
+    text-align: left;
+    transition: transform .14s ease, background .14s ease, color .14s ease;
+  }
+  .nav-btn:hover { transform: translateX(3px); background: rgba(112,85,232,.09); }
+  .nav-btn.active {
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary), var(--primary-2));
+    box-shadow: 0 8px 18px rgba(112,85,232,.26);
+  }
+  .nav-icon { width: 26px; text-align: center; font-size: 19px; }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px;
+    background: linear-gradient(180deg, transparent, rgba(83,185,120,.12));
+    text-align: center;
+  }
+  .mascot {
+    width: 98px;
+    height: 98px;
+    margin: 0 auto 8px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: linear-gradient(145deg, #fff9c9, #ffe47a);
+    border: 5px solid rgba(255,255,255,.75);
+    font-size: 58px;
+    box-shadow: 0 10px 22px rgba(255,187,58,.25);
+  }
+  .sidebar-footer strong { color: var(--green); }
+
+  .main { min-width: 0; }
+  .topbar {
+    min-height: 86px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 8px 16px;
+  }
+  .page-heading h1 { margin: 0; font-size: clamp(25px, 3vw, 38px); line-height: 1.05; }
+  .page-heading p { margin: 6px 0 0; color: var(--muted); font-weight: 700; }
+  .sound-pill {
+    border: 0;
+    border-radius: 999px;
+    padding: 11px 16px;
+    color: #fff;
+    background: linear-gradient(135deg, var(--blue), #4b65e6);
+    box-shadow: 0 8px 18px rgba(58,141,245,.26);
+    font-weight: 900;
+    white-space: nowrap;
+  }
+  .sound-pill.off { background: linear-gradient(135deg, #8da1bd, #71849d); }
+
+  .tab-panel { display: none; animation: fadeIn .2s ease; }
+  .tab-panel.active { display: block; }
+  @keyframes fadeIn { from { opacity: .35; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+  .grid { display: grid; gap: 16px; }
+  .grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .grid.home-main { grid-template-columns: 1.08fr .92fr; }
+  .grid.home-bottom { grid-template-columns: 1.1fr .9fr .8fr; margin-top: 16px; }
+
+  .card {
+    position: relative;
+    overflow: hidden;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,.72);
+    border-radius: var(--radius-xl);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+  }
+  body.dark .card { border-color: var(--line); }
+  .card::after {
+    content: "";
+    position: absolute;
+    width: 115px;
+    height: 115px;
+    right: -42px;
+    top: -48px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.25);
+    pointer-events: none;
+  }
+  .card.purple { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(240,235,255,.93)); border-color: #d8cfff; }
+  .card.pink { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(255,237,242,.94)); border-color: #ffd1dc; }
+  .card.green { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(232,255,239,.94)); border-color: #c9f0d5; }
+  .card.yellow { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(255,248,217,.94)); border-color: #f6df9b; }
+  .card.blue { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(232,246,255,.94)); border-color: #c8e7fa; }
+  body.dark .card.purple, body.dark .card.pink, body.dark .card.green, body.dark .card.yellow, body.dark .card.blue { background: var(--surface); border-color: var(--line); }
+
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 14px;
+    font-size: 18px;
+  }
+  .section-title { margin: 0 0 14px; font-size: 23px; }
+  .section-note { margin: -6px 0 18px; color: var(--muted); font-weight: 700; line-height: 1.45; }
+
+  .clock-big {
+    margin: 12px 0 2px;
+    font-size: clamp(48px, 7vw, 88px);
+    line-height: .95;
+    font-weight: 900;
+    color: var(--primary);
+    letter-spacing: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .date-text { color: var(--text); font-size: 18px; font-weight: 900; }
+  .timezone-text { margin-top: 5px; color: var(--muted); font-weight: 800; }
+  .clock-illustration { position: absolute; right: 18px; bottom: 14px; font-size: 75px; opacity: .92; }
+
+  .countdown-big {
+    margin: 12px 0 4px;
+    color: var(--pink);
+    font-size: clamp(43px, 6vw, 76px);
+    line-height: .95;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+  }
+  .target-pill, .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 11px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-weight: 900;
+  }
+  .target-pill { color: #ca365c; background: rgba(242,95,135,.11); border: 1px solid rgba(242,95,135,.28); }
+  .status-pill { color: #188a4b; background: rgba(44,191,109,.11); border: 1px solid rgba(44,191,109,.28); }
+  .status-pill.off { color: #9b5b10; background: rgba(255,191,47,.14); border-color: rgba(255,191,47,.36); }
+
+  .planner-summary { display: grid; gap: 9px; }
+  .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.58); border: 1px solid rgba(44,191,109,.15); font-weight: 800; }
+  body.dark .summary-row { background: rgba(255,255,255,.04); border-color: var(--line); }
+  .progress-track { height: 11px; overflow: hidden; border-radius: 999px; background: rgba(102,128,168,.18); }
+  .progress-fill { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--green), #7fd76d); transition: width .25s ease; }
+
+  .tip-quote { min-height: 112px; display: flex; align-items: center; font-size: 18px; line-height: 1.5; font-weight: 900; }
+  .tip-dots { display: flex; gap: 6px; justify-content: center; margin-top: 14px; }
+  .tip-dot { width: 8px; height: 8px; border-radius: 50%; background: #e3c36e; }
+  .tip-dot.active { width: 24px; border-radius: 999px; background: var(--yellow); }
+
+  .quick-actions { display: grid; gap: 10px; }
+  .btn {
+    min-height: 44px;
+    border: 0;
+    border-radius: 14px;
+    padding: 11px 15px;
+    font-weight: 900;
+    color: var(--text);
+    background: var(--surface-soft);
+    box-shadow: inset 0 0 0 1px var(--line);
+    transition: transform .13s ease, filter .13s ease;
+  }
+  .btn:hover { transform: translateY(-1px); filter: brightness(1.02); }
+  .btn.primary { color: #fff; background: linear-gradient(135deg, var(--primary), var(--primary-2)); box-shadow: 0 8px 16px rgba(112,85,232,.22); }
+  .btn.blue { color: #fff; background: linear-gradient(135deg, var(--blue), #4a66e6); box-shadow: 0 8px 16px rgba(58,141,245,.22); }
+  .btn.green { color: #fff; background: linear-gradient(135deg, var(--green), #23a95c); box-shadow: 0 8px 16px rgba(44,191,109,.2); }
+  .btn.yellow { color: #684708; background: linear-gradient(135deg, #ffd969, #ffbd34); box-shadow: 0 8px 16px rgba(255,191,47,.21); }
+  .btn.red { color: #fff; background: linear-gradient(135deg, var(--red), #d8425d); box-shadow: 0 8px 16px rgba(236,86,112,.2); }
+  .btn.ghost { background: transparent; }
+  .btn.small { min-height: 36px; padding: 8px 11px; border-radius: 11px; font-size: 13px; }
+  .button-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .button-row .btn { flex: 1 1 145px; }
+
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+  .field { display: grid; gap: 7px; }
+  .field.full { grid-column: 1 / -1; }
+  label { color: var(--muted); font-size: 13px; font-weight: 900; }
+  input, select, textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 13px;
+    color: var(--text);
+    background: var(--surface-solid);
+    font-weight: 800;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  input[type="range"] { padding: 0; accent-color: var(--primary); }
+  input[type="checkbox"] { width: 21px; height: 21px; accent-color: var(--green); }
+
+  .world-list { display: grid; gap: 9px; }
+  .world-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-soft); }
+  .world-row strong:last-child { font-variant-numeric: tabular-nums; }
+
+  .planner-list, .tips-list { display: grid; gap: 10px; }
+  .planner-item, .tip-item {
+    display: grid;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 11px 12px;
+    background: var(--surface-soft);
+  }
+  .planner-item { grid-template-columns: auto minmax(0,1fr) auto auto; }
+  .planner-item.done { background: rgba(44,191,109,.1); border-color: rgba(44,191,109,.34); }
+  .planner-item.done .planner-name { text-decoration: line-through; color: var(--muted); }
+  .planner-name { min-width: 0; font-weight: 900; overflow-wrap: anywhere; }
+  .minutes-badge { padding: 6px 9px; border-radius: 999px; color: #157847; background: rgba(44,191,109,.12); font-size: 12px; font-weight: 900; white-space: nowrap; }
+  .row-actions { display: flex; gap: 6px; }
+  .icon-btn { width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: 11px; background: var(--surface-solid); box-shadow: inset 0 0 0 1px var(--line); }
+  .icon-btn.danger { color: var(--red); }
+
+  .tip-item { grid-template-columns: minmax(0,1fr) auto; }
+  .tip-item p { margin: 0; line-height: 1.45; font-weight: 800; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat-box { padding: 16px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); text-align: center; }
+  .stat-box strong { display: block; font-size: 28px; color: var(--primary); }
+  .stat-box span { color: var(--muted); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .7px; }
+
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .setting-row:last-child { border-bottom: 0; }
+  .setting-copy strong { display: block; }
+  .setting-copy small { color: var(--muted); font-weight: 700; }
+  .switch { position: relative; width: 54px; height: 30px; flex: 0 0 auto; }
+  .switch input { position: absolute; opacity: 0; pointer-events: none; }
+  .switch span { position: absolute; inset: 0; border-radius: 999px; background: #bac6d6; transition: .2s; }
+  .switch span::after { content: ""; position: absolute; width: 24px; height: 24px; left: 3px; top: 3px; border-radius: 50%; background: white; box-shadow: 0 2px 6px rgba(0,0,0,.2); transition: .2s; }
+  .switch input:checked + span { background: var(--green); }
+  .switch input:checked + span::after { transform: translateX(24px); }
+
+  .palette-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .palette-btn { height: 52px; border: 3px solid transparent; border-radius: 16px; }
+  .palette-btn.active { border-color: var(--text); }
+  .palette-btn[data-palette="purple"] { background: linear-gradient(135deg,#7055e8,#a86af2); }
+  .palette-btn[data-palette="blue"] { background: linear-gradient(135deg,#3a8df5,#26c0d8); }
+  .palette-btn[data-palette="pink"] { background: linear-gradient(135deg,#f25f87,#ff9b64); }
+  .palette-btn[data-palette="green"] { background: linear-gradient(135deg,#2cbf6d,#82d85e); }
+
+  .backup-box { padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface-soft); }
+  .backup-box h3 { margin: 0 0 7px; }
+  .backup-box p { margin: 0 0 13px; color: var(--muted); line-height: 1.45; font-weight: 700; }
+
+  .empty { padding: 22px; border: 2px dashed var(--line); border-radius: 16px; color: var(--muted); text-align: center; font-weight: 900; }
+  .hidden { display: none !important; }
+
+  .alarm-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(20,34,65,.66);
+    backdrop-filter: blur(8px);
+  }
+  .alarm-modal.show { display: flex; }
+  .alarm-box {
+    width: min(480px, 100%);
+    padding: 26px;
+    border: 5px solid rgba(255,255,255,.78);
+    border-radius: 30px;
+    background: linear-gradient(145deg, #fff, #f2ebff);
+    box-shadow: 0 24px 70px rgba(16,34,67,.35);
+    text-align: center;
+  }
+  body.dark .alarm-box { background: var(--surface-solid); border-color: var(--line); }
+  .alarm-face { font-size: 70px; }
+  .alarm-box h2 { margin: 4px 0 0; font-size: 34px; }
+  .alarm-popup-time { margin: 8px 0; color: var(--pink); font-size: 25px; font-weight: 900; }
+  .alarm-box p { color: var(--muted); font-weight: 800; }
+
+  .toast {
+    position: fixed;
+    z-index: 300;
+    left: 50%;
+    bottom: 22px;
+    width: min(520px, calc(100% - 28px));
+    transform: translate(-50%, 20px);
+    padding: 13px 16px;
+    border-radius: 16px;
+    color: #fff;
+    background: #17346b;
+    box-shadow: 0 14px 30px rgba(0,0,0,.24);
+    text-align: center;
+    font-weight: 900;
+    opacity: 0;
+    pointer-events: none;
+    transition: .2s;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 1050px) {
+    .grid.home-bottom { grid-template-columns: 1fr 1fr; }
+    .grid.home-bottom .quick-card { grid-column: 1 / -1; }
+    .quick-actions { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
+
+  @media (max-width: 900px) {
+    .app-shell { grid-template-columns: 1fr; padding: 10px; }
+    .sidebar { position: sticky; top: 8px; z-index: 80; height: auto; border-radius: 22px; }
+    .brand { padding: 12px 14px 8px; }
+    .brand-star { width: 42px; height: 42px; font-size: 24px; }
+    .nav-list { display: flex; gap: 7px; padding: 8px 10px 11px; overflow-x: auto; overflow-y: hidden; }
+    .nav-btn { width: auto; flex: 0 0 auto; padding: 10px 12px; }
+    .nav-btn:hover { transform: none; }
+    .nav-icon { width: auto; }
+    .sidebar-footer { display: none; }
+    .topbar { min-height: 74px; }
+  }
+
+  @media (max-width: 720px) {
+    .grid.two, .grid.three, .grid.home-main, .grid.home-bottom, .form-grid { grid-template-columns: 1fr; }
+    .grid.home-bottom .quick-card { grid-column: auto; }
+    .quick-actions { grid-template-columns: 1fr; }
+    .card { padding: 17px; border-radius: 22px; }
+    .clock-illustration { position: static; margin-top: 12px; font-size: 58px; text-align: right; }
+    .planner-item { grid-template-columns: auto minmax(0,1fr) auto; }
+    .planner-item .row-actions { grid-column: 2 / -1; justify-content: flex-end; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .stats-grid .stat-box:last-child { grid-column: 1 / -1; }
+    .topbar { align-items: flex-start; }
+    .sound-pill { padding: 10px 12px; }
+  }
+
+  @media (max-width: 480px) {
+    .brand small { display: none; }
+    .nav-btn { font-size: 13px; }
+    .page-heading p { font-size: 13px; }
+    .sound-pill span { display: none; }
+    .palette-list { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-star">⭐</div>
+      <div><strong>Smart Tuition<br>Timer</strong><small>Learn happily every day</small></div>
+    </div>
+    <nav class="nav-list" aria-label="Main navigation">
+      <button class="nav-btn active" data-tab="home"><span class="nav-icon">🏠</span>Home</button>
+      <button class="nav-btn" data-tab="clock"><span class="nav-icon">🕒</span>Clock &amp; Time</button>
+      <button class="nav-btn" data-tab="alarm"><span class="nav-icon">⏰</span>Tuition Alarm</button>
+      <button class="nav-btn" data-tab="planner"><span class="nav-icon">📚</span>Study Planner</button>
+      <button class="nav-btn" data-tab="tips"><span class="nav-icon">💡</span>Tips</button>
+      <button class="nav-btn" data-tab="personalize"><span class="nav-icon">🎨</span>Personalize</button>
+      <button class="nav-btn" data-tab="backup"><span class="nav-icon">💾</span>Backup &amp; Data</button>
+      <button class="nav-btn" data-tab="settings"><span class="nav-icon">⚙️</span>Settings</button>
+      <button class="nav-btn" data-tab="about"><span class="nav-icon">ℹ️</span>About</button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="mascot">🧒</div>
+      <strong>Dream. Plan. Study.</strong>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="page-heading">
+        <h1 id="pageTitle">Welcome back!</h1>
+        <p id="pageSubtitle">Stay focused, learn better, and never miss tuition.</p>
+      </div>
+      <button class="sound-pill off" id="topSoundBtn">🔇 <span>Enable Sound</span></button>
+    </header>
+
+    <section class="tab-panel active" id="tab-home">
+      <div class="grid home-main">
+        <article class="card purple">
+          <h2 class="card-title">☀️ Current Time</h2>
+          <div class="clock-big" id="homeClock">--:--:--</div>
+          <div class="date-text" id="homeDate">Loading date...</div>
+          <div class="timezone-text" id="homeZone">Asia/Dubai</div>
+          <div class="clock-illustration">🕰️</div>
+        </article>
+        <article class="card pink">
+          <h2 class="card-title">⏳ Next Tuition In</h2>
+          <div class="countdown-big" id="homeCountdown">--:--:--</div>
+          <div class="date-text" id="countdownMessage">Calculating Dubai time...</div>
+          <div class="target-pill" id="homeTarget">⏰ Target: 4:00 PM Dubai</div>
+        </article>
+      </div>
+
+      <div class="grid home-bottom">
+        <article class="card green">
+          <h2 class="card-title">📖 Today’s Study Plan</h2>
+          <div class="progress-track"><div class="progress-fill" id="homeProgress"></div></div>
+          <div class="planner-summary" id="homePlannerSummary" style="margin-top:12px"></div>
+          <div class="button-row"><button class="btn green" data-open-tab="planner">View Full Planner</button></div>
+        </article>
+
+        <article class="card yellow">
+          <h2 class="card-title">💡 Tip of the Day</h2>
+          <div class="tip-quote" id="homeTip">Small steps every day lead to big results.</div>
+          <div class="tip-dots" id="tipDots"></div>
+          <div class="button-row"><button class="btn yellow" id="homeNextTip">Next Tip</button></div>
+        </article>
+
+        <article class="card blue quick-card">
+          <h2 class="card-title">🚀 Quick Actions</h2>
+          <div class="quick-actions">
+            <button class="btn blue" id="quickTest">🎵 Test Ringtone</button>
+            <button class="btn blue" id="quickExport">⬇️ Export Backup</button>
+            <button class="btn primary" id="quickSnooze">🔁 Ring Again in 5 Min</button>
+            <button class="btn red" id="quickStop">■ Stop Alarm</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-clock">
+      <h2 class="section-title">Clock &amp; Time</h2>
+      <p class="section-note">Choose any timezone for the main clock. The tuition alarm still follows Dubai time.</p>
+      <div class="grid two">
+        <article class="card purple">
+          <h3 class="card-title">🕒 Selected Location</h3>
+          <div class="clock-big" id="clockTabTime">--:--:--</div>
+          <div class="date-text" id="clockTabDate">Loading...</div>
+          <div class="timezone-text" id="clockTabZone">Asia/Dubai</div>
+        </article>
+        <article class="card">
+          <h3 class="card-title">🌍 Choose Timezone</h3>
+          <div class="form-grid">
+            <div class="field full"><label for="timezoneSelect">Location</label><select id="timezoneSelect"></select></div>
+            <div class="field full hidden" id="customZoneField"><label for="customZone">Custom IANA timezone</label><input id="customZone" placeholder="Example: Asia/Kolkata"></div>
+          </div>
+          <div class="button-row"><button class="btn primary" id="saveTimezone">Save Timezone</button></div>
+        </article>
+      </div>
+      <article class="card" style="margin-top:16px">
+        <h3 class="card-title">🌎 World Time Preview</h3>
+        <div class="world-list" id="worldTimes"></div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="tab-alarm">
+      <h2 class="section-title">Tuition Alarm</h2>
+      <p class="section-note">Set your Dubai tuition time. The gentle ringtone plays for exactly 10 seconds.</p>
+      <div class="grid two">
+        <article class="card pink">
+          <h3 class="card-title">⏰ Alarm Settings</h3>
+          <div class="form-grid">
+            <div class="field"><label for="alarmTime">Dubai alarm time</label><input id="alarmTime" type="time" value="16:00"></div>
+            <div class="field"><label for="ringtoneSelect">Ringtone</label>
+              <select id="ringtoneSelect">
+                <option value="storybook">Storybook Bells</option>
+                <option value="marimba">Soft Marimba</option>
+                <option value="dreamy">Dreamy Chimes</option>
+              </select>
+            </div>
+            <div class="field"><label>Alarm duration</label><input value="10 seconds" disabled></div>
+            <div class="field"><label for="volumeRange">Ringtone volume</label><input id="volumeRange" type="range" min="10" max="80" value="35"></div>
+          </div>
+          <div class="button-row">
+            <button class="btn primary" id="saveAlarm">Save Alarm</button>
+            <button class="btn blue" id="testAlarm">Test for 10 Seconds</button>
+            <button class="btn red" id="stopAlarm">Stop</button>
+          </div>
+        </article>
+        <article class="card yellow">
+          <h3 class="card-title">🔔 Alarm Status</h3>
+          <div class="countdown-big" id="alarmCountdown">--:--:--</div>
+          <div class="date-text" id="alarmTargetText">Target: 4:00 PM Dubai</div>
+          <div class="status-pill off" id="alarmStatus">Sound not enabled</div>
+          <div class="button-row"><button class="btn primary" id="alarmSnooze">Ring Again in 5 Minutes</button></div>
+          <p class="section-note" style="margin:14px 0 0">When the alarm rings, a popup lets you repeat it after five minutes as many times as needed.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-planner">
+      <h2 class="section-title">Today’s Study Planner</h2>
+      <p class="section-note">Add subjects, set study minutes, and tick each session when completed.</p>
+      <div class="stats-grid">
+        <div class="stat-box"><strong id="plannerCompleted">0/0</strong><span>Sessions</span></div>
+        <div class="stat-box"><strong id="plannerMinutes">0</strong><span>Completed Minutes</span></div>
+        <div class="stat-box"><strong id="plannerLevel">Start</strong><span>Progress</span></div>
+      </div>
+      <article class="card green">
+        <div class="progress-track"><div class="progress-fill" id="plannerProgress"></div></div>
+        <div class="planner-list" id="plannerList" style="margin-top:14px"></div>
+      </article>
+      <article class="card" style="margin-top:16px">
+        <h3 class="card-title">➕ Add Study Session</h3>
+        <div class="form-grid">
+          <div class="field"><label for="newSessionName">Subject or activity</label><input id="newSessionName" maxlength="80" placeholder="Example: Mathematics practice"></div>
+          <div class="field"><label for="newSessionMinutes">Minutes</label><input id="newSessionMinutes" type="number" min="5" max="240" value="30"></div>
+        </div>
+        <div class="button-row">
+          <button class="btn green" id="addSession">Add Session</button>
+          <button class="btn" id="resetProgress">Reset Progress</button>
+          <button class="btn yellow" id="restorePlan">Restore Default Plan</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="tab-tips">
+      <h2 class="section-title">Study Tips</h2>
+      <p class="section-note">Keep helpful reminders here. Add, edit, or remove tips whenever you like.</p>
+      <article class="card yellow">
+        <h3 class="card-title">⭐ Current Tip</h3>
+        <div class="tip-quote" id="tipsSpotlight">Loading tip...</div>
+        <div class="button-row"><button class="btn yellow" id="tipsNext">Next Tip</button></div>
+      </article>
+      <article class="card" style="margin-top:16px">
+        <div class="tips-list" id="tipsList"></div>
+      </article>
+      <article class="card" style="margin-top:16px">
+        <h3 class="card-title">➕ Add a New Tip</h3>
+        <div class="field"><label for="newTipText">Tip text</label><textarea id="newTipText" maxlength="220" placeholder="Write a helpful study tip"></textarea></div>
+        <div class="button-row"><button class="btn yellow" id="addTip">Add Tip</button><button class="btn" id="restoreTips">Restore Default Tips</button></div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="tab-personalize">
+      <h2 class="section-title">Personalize</h2>
+      <p class="section-note">Make the timer feel like your own study companion.</p>
+      <div class="grid two">
+        <article class="card blue">
+          <h3 class="card-title">🧒 Your Details</h3>
+          <div class="form-grid">
+            <div class="field full"><label for="studentName">Student name</label><input id="studentName" maxlength="24" placeholder="Enter your name"></div>
+            <div class="field full"><label for="headerMessage">Welcome message</label><input id="headerMessage" maxlength="100" placeholder="Stay focused, learn better!"></div>
+          </div>
+          <div class="button-row"><button class="btn blue" id="savePersonalize">Save Changes</button></div>
+        </article>
+        <article class="card purple">
+          <h3 class="card-title">🎨 Choose a Color Theme</h3>
+          <div class="palette-list">
+            <button class="palette-btn active" data-palette="purple" aria-label="Purple theme"></button>
+            <button class="palette-btn" data-palette="blue" aria-label="Blue theme"></button>
+            <button class="palette-btn" data-palette="pink" aria-label="Pink theme"></button>
+            <button class="palette-btn" data-palette="green" aria-label="Green theme"></button>
+          </div>
+          <p class="section-note" style="margin:15px 0 0">Choose a cheerful color for buttons, clocks, and highlights.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-backup">
+      <h2 class="section-title">Backup &amp; Data</h2>
+      <p class="section-note">Move your planner and settings safely between browsers or devices.</p>
+      <div class="grid three">
+        <article class="backup-box"><h3>⬇️ Export Backup</h3><p>Download your settings, study plan, tips, and progress as a JSON file.</p><button class="btn blue" id="exportBackup">Export Backup</button></article>
+        <article class="backup-box"><h3>⬆️ Import Backup</h3><p>Choose a previously exported file to restore your data.</p><button class="btn green" id="importBackup">Import Backup</button><input id="backupFile" type="file" accept="application/json" hidden></article>
+        <article class="backup-box"><h3>↺ Restore Defaults</h3><p>Reset the planner, tips, settings, and appearance to the original setup.</p><button class="btn red" id="restoreEverything">Restore Defaults</button></article>
+      </div>
+    </section>
+
+    <section class="tab-panel" id="tab-settings">
+      <h2 class="section-title">Settings</h2>
+      <p class="section-note">Control sound, notifications, appearance, and display behavior.</p>
+      <article class="card">
+        <div class="setting-row"><div class="setting-copy"><strong>Sound</strong><small>Allow the ringtone to play while this page is open.</small></div><label class="switch"><input id="settingSound" type="checkbox"><span></span></label></div>
+        <div class="setting-row"><div class="setting-copy"><strong>Notifications</strong><small>Show a browser notification when tuition time arrives.</small></div><label class="switch"><input id="settingNotifications" type="checkbox"><span></span></label></div>
+        <div class="setting-row"><div class="setting-copy"><strong>Dark Mode</strong><small>Use darker colors in low light.</small></div><label class="switch"><input id="settingDark" type="checkbox"><span></span></label></div>
+        <div class="setting-row"><div class="setting-copy"><strong>Auto Save</strong><small>Remember changes automatically in this browser.</small></div><label class="switch"><input id="settingAutoSave" type="checkbox" checked><span></span></label></div>
+        <div class="setting-row"><div class="setting-copy"><strong>Show Seconds</strong><small>Display seconds on live clocks.</small></div><label class="switch"><input id="settingSeconds" type="checkbox" checked><span></span></label></div>
+      </article>
+    </section>
+
+    <section class="tab-panel" id="tab-about">
+      <h2 class="section-title">About</h2>
+      <article class="card purple" style="text-align:center; padding:36px 22px">
+        <div style="font-size:86px">⭐</div>
+        <h2 style="font-size:32px; margin:8px 0">Smart Tuition Timer</h2>
+        <p class="section-note" style="max-width:650px; margin:0 auto 18px">A friendly study companion that helps students track time, prepare for tuition, follow a study plan, and build better learning habits.</p>
+        <div class="target-pill">Version 2.0 · Single HTML File</div>
+      </article>
+    </section>
+  </main>
+</div>
+
+<div class="alarm-modal" id="alarmModal" role="dialog" aria-modal="true" aria-labelledby="alarmPopupTitle">
+  <div class="alarm-box">
+    <div class="alarm-face">⏰</div>
+    <h2 id="alarmPopupTitle">Tuition Time!</h2>
+    <div class="alarm-popup-time" id="alarmPopupTime">4:00 PM Dubai Time</div>
+    <p id="alarmPopupMessage">It is time to get ready for tuition.</p>
+    <div class="button-row">
+      <button class="btn primary" id="popupSnooze">Ring Again in 5 Minutes</button>
+      <button class="btn" id="popupDismiss">Dismiss</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const clone = value => JSON.parse(JSON.stringify(value));
+
+  const places = [
+    ['Dubai, UAE','Asia/Dubai'], ['Abu Dhabi, UAE','Asia/Dubai'], ['India','Asia/Kolkata'],
+    ['Qatar','Asia/Qatar'], ['Saudi Arabia','Asia/Riyadh'], ['Oman','Asia/Muscat'],
+    ['Kuwait','Asia/Kuwait'], ['Singapore','Asia/Singapore'], ['Philippines','Asia/Manila'],
+    ['United Kingdom','Europe/London'], ['Germany','Europe/Berlin'], ['New York, USA','America/New_York'],
+    ['Los Angeles, USA','America/Los_Angeles'], ['Toronto, Canada','America/Toronto'],
+    ['Sydney, Australia','Australia/Sydney'], ['Custom timezone','custom']
+  ];
+
+  const defaultTasks = [
+    { name: 'Mathematics — Practice today’s topic', minutes: 30, done: false },
+    { name: 'Science — Review one chapter', minutes: 25, done: false },
+    { name: 'English — Reading and short notes', minutes: 20, done: false },
+    { name: 'Homework — Complete pending work', minutes: 20, done: false },
+    { name: 'Questions — Prepare doubts for the tutor', minutes: 15, done: false },
+    { name: 'Revision — Review the previous lesson', minutes: 10, done: false }
+  ];
+
+  const defaultTips = [
+    'Small steps every day lead to big results tomorrow.',
+    'Start with the hardest subject while your mind is fresh.',
+    'Keep books, notebooks, and stationery together before tuition.',
+    'Review the previous lesson for five minutes before class.',
+    'Write difficult questions down so you can ask the tutor clearly.',
+    'Keep your phone silent during focused study time.',
+    'Take a short stretch and water break after a long study session.',
+    'Read each answer once before submitting it to catch simple mistakes.'
+  ];
+
+  const defaultState = {
+    studentName: '',
+    headerMessage: 'Stay focused, learn better, and never miss tuition.',
+    selectedZone: 'Asia/Dubai',
+    selectedLabel: 'Dubai, UAE',
+    alarmTime: '16:00',
+    ringtone: 'storybook',
+    volume: 35,
+    palette: 'purple',
+    currentTip: 0,
+    tasks: clone(defaultTasks),
+    tips: clone(defaultTips),
+    settings: { sound: false, notifications: false, dark: false, autoSave: true, showSeconds: true },
+    lastTab: 'home'
+  };
+
+  function loadState() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('smartTuitionTimerV2'));
+      if (!saved || typeof saved !== 'object') return clone(defaultState);
+      const merged = {
+        ...clone(defaultState),
+        ...saved,
+        settings: { ...defaultState.settings, ...(saved.settings || {}) }
+      };
+      if (!Array.isArray(merged.tasks) || !merged.tasks.length) merged.tasks = clone(defaultTasks);
+      if (!Array.isArray(merged.tips) || !merged.tips.length) merged.tips = clone(defaultTips);
+      merged.tasks = merged.tasks.map(task => ({
+        name: String(task.name || 'Study session').slice(0,80),
+        minutes: Math.max(5, Math.min(240, Number(task.minutes ?? task.pts ?? 30))),
+        done: Boolean(task.done)
+      }));
+      merged.tips = merged.tips.map(t => String(t).trim().slice(0,220)).filter(Boolean);
+      return merged;
+    } catch { return clone(defaultState); }
+  }
+
+  let state = loadState();
+  let audioCtx = null;
+  let audioNodes = [];
+  let masterGain = null;
+  let alarmTimer = null;
+  let alarmPlaying = false;
+  let soundUnlocked = false;
+  let toastTimer = null;
+
+  function saveState(force = false) {
+    if (state.settings.autoSave || force) localStorage.setItem('smartTuitionTimerV2', JSON.stringify(state));
+  }
+
+  function showToast(message) {
+    const toast = $('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 2600);
+  }
+
+  function isValidZone(zone) {
+    try { new Intl.DateTimeFormat('en-US', { timeZone: zone }).format(); return true; }
+    catch { return false; }
+  }
+
+  function zoneParts(zone) {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: zone, hour12: false,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
+    }).formatToParts(new Date()).reduce((a,p) => (a[p.type] = p.value, a), {});
+    return { year:+parts.year, month:+parts.month, day:+parts.day, hour:+parts.hour, minute:+parts.minute, second:+parts.second };
+  }
+
+  function formatTime(zone) {
+    const options = { timeZone: zone, hour: '2-digit', minute: '2-digit', hour12: false };
+    if (state.settings.showSeconds) options.second = '2-digit';
+    return new Intl.DateTimeFormat('en-GB', options).format(new Date());
+  }
+
+  function formatDate(zone) {
+    return new Intl.DateTimeFormat('en-GB', { timeZone: zone, weekday:'long', day:'2-digit', month:'long', year:'numeric' }).format(new Date());
+  }
+
+  function readableAlarm(value = state.alarmTime) {
+    const [h,m] = value.split(':').map(Number);
+    return `${h % 12 || 12}:${String(m).padStart(2,'0')} ${h >= 12 ? 'PM' : 'AM'}`;
+  }
+
+  function secondsToAlarm() {
+    const now = zoneParts('Asia/Dubai');
+    const [h,m] = state.alarmTime.split(':').map(Number);
+    const current = now.hour * 3600 + now.minute * 60 + now.second;
+    const target = h * 3600 + m * 60;
+    let diff = target - current;
+    if (diff < 0) diff += 86400;
+    return { diff, current, target, dayKey: `${now.year}-${String(now.month).padStart(2,'0')}-${String(now.day).padStart(2,'0')}` };
+  }
+
+  function duration(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  function openTab(tab) {
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.toggle('active', panel.id === `tab-${tab}`));
+    state.lastTab = tab;
+    saveState();
+    const titles = {
+      home: ['Welcome back!', 'Stay focused, learn better, and never miss tuition.'],
+      clock: ['Clock & Time', 'View your chosen timezone and compare world times.'],
+      alarm: ['Tuition Alarm', 'Set a gentle reminder based on Dubai time.'],
+      planner: ['Study Planner', 'Turn today’s learning into small, clear steps.'],
+      tips: ['Study Tips', 'Build your own collection of helpful reminders.'],
+      personalize: ['Personalize', 'Make the timer feel welcoming and familiar.'],
+      backup: ['Backup & Data', 'Keep your settings and study plan safe.'],
+      settings: ['Settings', 'Control sound, notifications, and appearance.'],
+      about: ['About', 'Your friendly tuition and study companion.']
+    };
+    const [title, subtitle] = titles[tab] || titles.home;
+    $('pageTitle').textContent = state.studentName && tab === 'home' ? `Welcome, ${state.studentName}!` : title;
+    $('pageSubtitle').textContent = tab === 'home' ? state.headerMessage : subtitle;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function applyPalette() {
+    const palettes = {
+      purple: ['#7055e8','#9158ef'], blue: ['#3a8df5','#2fb7de'], pink: ['#f25f87','#ff944d'], green: ['#2cbf6d','#82d85e']
+    };
+    const [a,b] = palettes[state.palette] || palettes.purple;
+    document.documentElement.style.setProperty('--primary', a);
+    document.documentElement.style.setProperty('--primary-2', b);
+    document.querySelectorAll('.palette-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.palette === state.palette));
+  }
+
+  function applySettings() {
+    document.body.classList.toggle('dark', state.settings.dark);
+    $('settingDark').checked = state.settings.dark;
+    $('settingAutoSave').checked = state.settings.autoSave;
+    $('settingSeconds').checked = state.settings.showSeconds;
+    $('settingNotifications').checked = state.settings.notifications;
+    $('settingSound').checked = state.settings.sound;
+    updateSoundUI();
+    applyPalette();
+  }
+
+  function updateSoundUI() {
+    const on = soundUnlocked && state.settings.sound;
+    $('topSoundBtn').classList.toggle('off', !on);
+    $('topSoundBtn').innerHTML = on ? '🔊 <span>Sound On</span>' : '🔇 <span>Enable Sound</span>';
+    if (!alarmPlaying) {
+      const snooze = Number(localStorage.getItem('tuitionSnoozeAt') || 0);
+      if (snooze > Date.now()) {
+        const mins = Math.max(1, Math.ceil((snooze - Date.now()) / 60000));
+        $('alarmStatus').textContent = `Repeats in ${mins} minute${mins === 1 ? '' : 's'}`;
+        $('alarmStatus').className = 'status-pill';
+      } else {
+        $('alarmStatus').textContent = on ? 'Sound enabled' : 'Sound not enabled';
+        $('alarmStatus').className = `status-pill${on ? '' : ' off'}`;
+      }
+    }
+  }
+
+  async function enableSound() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      await audioCtx.resume();
+      soundUnlocked = true;
+      state.settings.sound = true;
+      $('settingSound').checked = true;
+      saveState();
+      updateSoundUI();
+      showToast('Sound is enabled for this open page.');
+    } catch { showToast('The browser blocked sound. Tap Enable Sound again.'); }
+  }
+
+  function stopSound(closePopup = false, showMessage = false) {
+    clearTimeout(alarmTimer);
+    alarmTimer = null;
+    audioNodes.forEach(node => { try { node.stop(); } catch {} try { node.disconnect(); } catch {} });
+    audioNodes = [];
+    if (masterGain) { try { masterGain.disconnect(); } catch {} }
+    masterGain = null;
+    alarmPlaying = false;
+    if (closePopup) $('alarmModal').classList.remove('show');
+    updateSoundUI();
+    if (showMessage) showToast('Alarm stopped.');
+  }
+
+  function scheduleNote(freq, start, length, volume, type = 'sine', overtone = false) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(.0001, start);
+    gain.gain.exponentialRampToValueAtTime(Math.max(.0002, volume), start + .08);
+    gain.gain.exponentialRampToValueAtTime(.0001, start + length);
+    osc.connect(gain).connect(masterGain);
+    osc.start(start);
+    osc.stop(start + length + .03);
+    audioNodes.push(osc, gain);
+    if (overtone) scheduleNote(freq * 2, start, length * .7, volume * .11, 'triangle', false);
+  }
+
+  function melodyPattern(name) {
+    if (name === 'marimba') return { cycle: 2.2, notes: [[523.25,0,.38],[659.25,.43,.34],[783.99,.86,.42],[659.25,1.34,.36]], type:'triangle', overtone:false };
+    if (name === 'dreamy') return { cycle: 3.0, notes: [[392,0,.9],[523.25,.7,.95],[659.25,1.45,1.0]], type:'sine', overtone:true };
+    return { cycle: 2.5, notes: [[659.25,0,.68],[783.99,.42,.7],[587.33,.9,.7],[523.25,1.42,.82]], type:'sine', overtone:true };
+  }
+
+  async function startAlarm({ test = false, source = 'main' } = {}) {
+    if (!soundUnlocked || !state.settings.sound) {
+      if (!test) showAlarmPopup(source);
+      showToast('Enable sound first to hear the ringtone.');
+      return;
+    }
+    stopSound(false, false);
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      await audioCtx.resume();
+      const start = audioCtx.currentTime + .05;
+      const total = 10;
+      const pattern = melodyPattern(state.ringtone);
+      masterGain = audioCtx.createGain();
+      masterGain.gain.setValueAtTime((state.volume / 100) * .9, start);
+      masterGain.connect(audioCtx.destination);
+      for (let cycle = 0; cycle < Math.ceil(total / pattern.cycle); cycle++) {
+        pattern.notes.forEach(([freq,offset,len]) => {
+          const noteStart = start + cycle * pattern.cycle + offset;
+          if (noteStart < start + total) scheduleNote(freq, noteStart, Math.min(len, start + total - noteStart), .12, pattern.type, pattern.overtone);
+        });
+      }
+      alarmPlaying = true;
+      $('alarmStatus').textContent = test ? 'Testing ringtone' : 'Tuition alarm ringing';
+      $('alarmStatus').className = 'status-pill';
+      if (!test) showAlarmPopup(source);
+      alarmTimer = setTimeout(() => {
+        stopSound(false, false);
+        if (test) showToast('Ringtone test finished.');
+      }, 10000);
+    } catch { showToast('The ringtone could not play.'); }
+  }
+
+  function showAlarmPopup(source) {
+    $('alarmPopupTime').textContent = source === 'snooze' ? '5-Minute Reminder' : `${readableAlarm()} Dubai Time`;
+    $('alarmPopupMessage').textContent = source === 'snooze' ? 'Your tuition reminder is ringing again.' : 'It is time to get ready for tuition.';
+    $('alarmModal').classList.add('show');
+  }
+
+  function snoozeAlarm() {
+    stopSound(true, false);
+    localStorage.setItem('tuitionSnoozeAt', String(Date.now() + 5 * 60 * 1000));
+    updateSoundUI();
+    showToast('The alarm will ring again in 5 minutes.');
+  }
+
+  function maybeTriggerAlarm() {
+    const info = secondsToAlarm();
+    const lastKey = localStorage.getItem('lastDubaiAlarmKey');
+    const withinMinute = info.current >= info.target && info.current < info.target + 60;
+    if (withinMinute && lastKey !== info.dayKey && !alarmPlaying) {
+      localStorage.setItem('lastDubaiAlarmKey', info.dayKey);
+      notify('Tuition time', `It is ${readableAlarm()} in Dubai. Time to get ready.`);
+      startAlarm({ source:'main' });
+    }
+
+    const snoozeAt = Number(localStorage.getItem('tuitionSnoozeAt') || 0);
+    if (snoozeAt && Date.now() >= snoozeAt && !alarmPlaying) {
+      localStorage.removeItem('tuitionSnoozeAt');
+      notify('Tuition reminder', 'Your five-minute reminder is ringing again.');
+      startAlarm({ source:'snooze' });
+    }
+    return info.diff;
+  }
+
+  function notify(title, body) {
+    if (state.settings.notifications && 'Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body });
+    }
+  }
+
+  async function requestNotifications() {
+    if (!('Notification' in window)) { showToast('Notifications are not supported in this browser.'); return; }
+    const result = await Notification.requestPermission();
+    state.settings.notifications = result === 'granted';
+    $('settingNotifications').checked = state.settings.notifications;
+    saveState();
+    showToast(result === 'granted' ? 'Notifications enabled.' : 'Notification permission was not granted.');
+  }
+
+  function updateClocks() {
+    if (!isValidZone(state.selectedZone)) { state.selectedZone = 'Asia/Dubai'; state.selectedLabel = 'Dubai, UAE'; }
+    const time = formatTime(state.selectedZone);
+    const date = formatDate(state.selectedZone);
+    ['homeClock','clockTabTime'].forEach(id => $(id).textContent = time);
+    ['homeDate','clockTabDate'].forEach(id => $(id).textContent = date);
+    $('homeZone').textContent = `${state.selectedLabel} · ${state.selectedZone}`;
+    $('clockTabZone').textContent = `${state.selectedLabel} · ${state.selectedZone}`;
+    const diff = maybeTriggerAlarm();
+    $('homeCountdown').textContent = duration(diff);
+    $('alarmCountdown').textContent = duration(diff);
+    $('homeTarget').textContent = `⏰ Target: ${readableAlarm()} Dubai`;
+    $('alarmTargetText').textContent = `Target: ${readableAlarm()} Dubai`;
+    $('countdownMessage').textContent = diff <= 1800 ? 'Less than 30 minutes left.' : diff <= 3600 ? 'Less than one hour left.' : 'Today’s tuition countdown';
+    updateWorldTimes();
+    updateSoundUI();
+  }
+
+  function updateWorldTimes() {
+    const zones = [['Dubai','Asia/Dubai'],['India','Asia/Kolkata'],['United Kingdom','Europe/London'],['New York','America/New_York'],['Sydney','Australia/Sydney']];
+    $('worldTimes').innerHTML = zones.map(([name,zone]) => `<div class="world-row"><strong>${name}</strong><strong>${formatTime(zone)}</strong></div>`).join('');
+  }
+
+  function renderPlaceSelect() {
+    $('timezoneSelect').innerHTML = places.map(([label,zone]) => `<option value="${zone}" data-label="${label}">${label}</option>`).join('');
+    const found = places.find(([,zone]) => zone === state.selectedZone && zone !== 'custom');
+    $('timezoneSelect').value = found ? state.selectedZone : 'custom';
+    $('customZone').value = found ? '' : state.selectedZone;
+    $('customZoneField').classList.toggle('hidden', $('timezoneSelect').value !== 'custom');
+  }
+
+  function plannerStats() {
+    const completed = state.tasks.filter(t => t.done);
+    const totalMinutes = completed.reduce((sum,t) => sum + t.minutes, 0);
+    const percent = state.tasks.length ? Math.round(completed.length / state.tasks.length * 100) : 0;
+    return { completed: completed.length, total: state.tasks.length, totalMinutes, percent };
+  }
+
+  function renderPlanner() {
+    const stats = plannerStats();
+    $('plannerCompleted').textContent = `${stats.completed}/${stats.total}`;
+    $('plannerMinutes').textContent = stats.totalMinutes;
+    $('plannerLevel').textContent = stats.percent >= 100 ? 'Excellent' : stats.percent >= 60 ? 'Focused' : stats.percent > 0 ? 'Started' : 'Start';
+    $('plannerProgress').style.width = `${stats.percent}%`;
+    $('homeProgress').style.width = `${stats.percent}%`;
+
+    $('plannerList').innerHTML = state.tasks.length ? state.tasks.map((task,index) => `
+      <div class="planner-item ${task.done ? 'done' : ''}">
+        <input type="checkbox" data-task-check="${index}" ${task.done ? 'checked' : ''} aria-label="Complete ${escapeHtml(task.name)}">
+        <div class="planner-name">${escapeHtml(task.name)}</div>
+        <div class="minutes-badge">${task.minutes} min</div>
+        <div class="row-actions"><button class="icon-btn" data-task-edit="${index}" title="Edit">✏️</button><button class="icon-btn danger" data-task-delete="${index}" title="Delete">🗑️</button></div>
+      </div>`).join('') : '<div class="empty">No study sessions yet. Add one below.</div>';
+
+    const preview = state.tasks.slice(0,4);
+    $('homePlannerSummary').innerHTML = preview.length ? preview.map(task => `<div class="summary-row"><span>${task.done ? '✅' : '⬜'} ${escapeHtml(task.name)}</span><strong>${task.minutes} min</strong></div>`).join('') : '<div class="empty">No sessions planned.</div>';
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+  }
+
+  function renderTips() {
+    if (!state.tips.length) state.tips = clone(defaultTips);
+    state.currentTip = Math.min(state.currentTip, state.tips.length - 1);
+    const current = state.tips[state.currentTip];
+    $('homeTip').textContent = current;
+    $('tipsSpotlight').textContent = current;
+    $('tipDots').innerHTML = state.tips.slice(0,5).map((_,i) => `<span class="tip-dot ${i === state.currentTip % 5 ? 'active' : ''}"></span>`).join('');
+    $('tipsList').innerHTML = state.tips.map((tip,index) => `<div class="tip-item"><p>💡 ${escapeHtml(tip)}</p><div class="row-actions"><button class="icon-btn" data-tip-edit="${index}" title="Edit">✏️</button><button class="icon-btn danger" data-tip-delete="${index}" title="Delete">🗑️</button></div></div>`).join('');
+  }
+
+  function nextTip() {
+    state.currentTip = (state.currentTip + 1) % state.tips.length;
+    saveState();
+    renderTips();
+  }
+
+  function renderInputs() {
+    $('alarmTime').value = state.alarmTime;
+    $('ringtoneSelect').value = state.ringtone;
+    $('volumeRange').value = state.volume;
+    $('studentName').value = state.studentName;
+    $('headerMessage').value = state.headerMessage;
+  }
+
+  function exportBackup() {
+    const blob = new Blob([JSON.stringify({ version:2, exportedAt:new Date().toISOString(), state }, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tuition-timer-backup.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showToast('Backup exported.');
+  }
+
+  function importBackup(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        const imported = data.state || data;
+        if (!imported || !Array.isArray(imported.tasks) || !Array.isArray(imported.tips)) throw new Error();
+        state = { ...clone(defaultState), ...imported, settings:{...defaultState.settings,...(imported.settings||{})} };
+        saveState(true);
+        initializeUI();
+        showToast('Backup imported successfully.');
+      } catch { showToast('This backup file is not valid.'); }
+      $('backupFile').value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  function restoreDefaults() {
+    state = clone(defaultState);
+    localStorage.removeItem('tuitionSnoozeAt');
+    localStorage.removeItem('lastDubaiAlarmKey');
+    saveState(true);
+    stopSound(true, false);
+    initializeUI();
+    showToast('Default settings restored.');
+  }
+
+  function bindEvents() {
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => openTab(btn.dataset.tab)));
+    document.querySelectorAll('[data-open-tab]').forEach(btn => btn.addEventListener('click', () => openTab(btn.dataset.openTab)));
+    $('topSoundBtn').addEventListener('click', enableSound);
+
+    $('timezoneSelect').addEventListener('change', () => $('customZoneField').classList.toggle('hidden', $('timezoneSelect').value !== 'custom'));
+    $('saveTimezone').addEventListener('click', () => {
+      if ($('timezoneSelect').value === 'custom') {
+        const zone = $('customZone').value.trim();
+        if (!isValidZone(zone)) return showToast('Enter a valid timezone such as Asia/Kolkata.');
+        state.selectedZone = zone; state.selectedLabel = zone;
+      } else {
+        state.selectedZone = $('timezoneSelect').value;
+        state.selectedLabel = $('timezoneSelect').selectedOptions[0].dataset.label;
+      }
+      saveState(true); updateClocks(); showToast('Timezone saved.');
+    });
+
+    $('saveAlarm').addEventListener('click', () => {
+      state.alarmTime = $('alarmTime').value || '16:00';
+      state.ringtone = $('ringtoneSelect').value;
+      state.volume = Number($('volumeRange').value);
+      saveState(true); updateClocks(); showToast('Alarm settings saved.');
+    });
+    $('testAlarm').addEventListener('click', async () => { if (!soundUnlocked) await enableSound(); startAlarm({ test:true }); });
+    $('stopAlarm').addEventListener('click', () => stopSound(true, true));
+    $('alarmSnooze').addEventListener('click', snoozeAlarm);
+    $('popupSnooze').addEventListener('click', snoozeAlarm);
+    $('popupDismiss').addEventListener('click', () => stopSound(true, true));
+
+    $('quickTest').addEventListener('click', async () => { if (!soundUnlocked) await enableSound(); startAlarm({ test:true }); });
+    $('quickExport').addEventListener('click', exportBackup);
+    $('quickSnooze').addEventListener('click', snoozeAlarm);
+    $('quickStop').addEventListener('click', () => stopSound(true, true));
+
+    $('plannerList').addEventListener('change', event => {
+      const index = event.target.dataset.taskCheck;
+      if (index === undefined) return;
+      state.tasks[Number(index)].done = event.target.checked; saveState(); renderPlanner();
+    });
+    $('plannerList').addEventListener('click', event => {
+      const edit = event.target.closest('[data-task-edit]');
+      const del = event.target.closest('[data-task-delete]');
+      if (edit) {
+        const index = Number(edit.dataset.taskEdit); const task = state.tasks[index];
+        const name = prompt('Edit the study session:', task.name);
+        if (name === null) return;
+        const minutes = prompt('Minutes:', String(task.minutes));
+        if (minutes === null) return;
+        task.name = name.trim().slice(0,80) || task.name;
+        task.minutes = Math.max(5, Math.min(240, Number(minutes) || task.minutes));
+        saveState(); renderPlanner();
+      }
+      if (del) { state.tasks.splice(Number(del.dataset.taskDelete),1); saveState(); renderPlanner(); showToast('Study session deleted.'); }
+    });
+    $('addSession').addEventListener('click', () => {
+      const name = $('newSessionName').value.trim();
+      const minutes = Math.max(5, Math.min(240, Number($('newSessionMinutes').value) || 30));
+      if (!name) return showToast('Enter a subject or activity.');
+      state.tasks.push({ name:name.slice(0,80), minutes, done:false });
+      $('newSessionName').value = ''; saveState(); renderPlanner(); showToast('Study session added.');
+    });
+    $('resetProgress').addEventListener('click', () => { state.tasks.forEach(t => t.done = false); saveState(); renderPlanner(); showToast('Study progress reset.'); });
+    $('restorePlan').addEventListener('click', () => { state.tasks = clone(defaultTasks); saveState(); renderPlanner(); showToast('Default study plan restored.'); });
+
+    $('homeNextTip').addEventListener('click', nextTip);
+    $('tipsNext').addEventListener('click', nextTip);
+    $('tipsList').addEventListener('click', event => {
+      const edit = event.target.closest('[data-tip-edit]');
+      const del = event.target.closest('[data-tip-delete]');
+      if (edit) {
+        const index = Number(edit.dataset.tipEdit);
+        const text = prompt('Edit this tip:', state.tips[index]);
+        if (text !== null && text.trim()) { state.tips[index] = text.trim().slice(0,220); saveState(); renderTips(); }
+      }
+      if (del) {
+        state.tips.splice(Number(del.dataset.tipDelete),1);
+        if (!state.tips.length) state.tips = clone(defaultTips);
+        state.currentTip = 0; saveState(); renderTips(); showToast('Tip deleted.');
+      }
+    });
+    $('addTip').addEventListener('click', () => {
+      const text = $('newTipText').value.trim(); if (!text) return showToast('Write a tip first.');
+      state.tips.push(text.slice(0,220)); $('newTipText').value = ''; state.currentTip = state.tips.length - 1; saveState(); renderTips(); showToast('Tip added.');
+    });
+    $('restoreTips').addEventListener('click', () => { state.tips = clone(defaultTips); state.currentTip = 0; saveState(); renderTips(); showToast('Default tips restored.'); });
+
+    $('savePersonalize').addEventListener('click', () => {
+      state.studentName = $('studentName').value.trim().slice(0,24);
+      state.headerMessage = $('headerMessage').value.trim().slice(0,100) || defaultState.headerMessage;
+      saveState(true); openTab('home'); showToast('Personalization saved.');
+    });
+    document.querySelectorAll('.palette-btn').forEach(btn => btn.addEventListener('click', () => { state.palette = btn.dataset.palette; applyPalette(); saveState(); }));
+
+    $('exportBackup').addEventListener('click', exportBackup);
+    $('importBackup').addEventListener('click', () => $('backupFile').click());
+    $('backupFile').addEventListener('change', e => { if (e.target.files[0]) importBackup(e.target.files[0]); });
+    $('restoreEverything').addEventListener('click', restoreDefaults);
+
+    $('settingSound').addEventListener('change', async event => {
+      if (event.target.checked) await enableSound();
+      else { state.settings.sound = false; stopSound(true,false); saveState(); updateSoundUI(); }
+    });
+    $('settingNotifications').addEventListener('change', async event => {
+      if (event.target.checked) await requestNotifications();
+      else { state.settings.notifications = false; saveState(); }
+    });
+    $('settingDark').addEventListener('change', event => { state.settings.dark = event.target.checked; document.body.classList.toggle('dark',state.settings.dark); saveState(); });
+    $('settingAutoSave').addEventListener('change', event => { state.settings.autoSave = event.target.checked; saveState(true); showToast(event.target.checked ? 'Auto save enabled.' : 'Auto save disabled.'); });
+    $('settingSeconds').addEventListener('change', event => { state.settings.showSeconds = event.target.checked; saveState(); updateClocks(); });
+  }
+
+  function initializeUI() {
+    applySettings();
+    renderPlaceSelect();
+    renderInputs();
+    renderPlanner();
+    renderTips();
+    updateClocks();
+    openTab(state.lastTab || 'home');
+  }
+
+  bindEvents();
+  initializeUI();
+  setInterval(updateClocks, 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) updateClocks(); });
+})();
+</script>
+</body>
+</html>
